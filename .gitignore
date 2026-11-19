@@ -1,0 +1,22 @@
+# Rust build output (matches day01/target, src-tauri/target, ... at any depth)
+target/
+
+# rustfmt backups
+**/*.rs.bk
+
+# Tauri / front-end (from Day 22)
+node_modules/
+dist/
+.svelte-kit/
+src-tauri/gen/schemas/
+
+# Secrets and local config
+.env
+.env.*
+!.env.example
+
+# Editors and OS
+.idea/
+*.swp
+*~
+.DS_Store

@@ -1,0 +1,730 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rustic Field Manual</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a field manual — sticky chapter rail on the left, a single ~68ch reading column; stacks on phones. */
+:root {
+  --bg: #f5f6f7;
+  --surface: #ffffff;
+  --ink: #1c2026;
+  --muted: #5a636e;
+  --line: #dce0e5;
+  --accent: #b4470f;          /* iron oxide */
+  --accent-ink: #ffffff;
+  --accent-soft: #f7e7dd;
+  --code-bg: #eef0f3;
+  --code-ink: #1f2933;
+  --cpp: #2d68a8; --cpp-soft: #e3edf8;
+  --go: #087f86;  --go-soft: #dff3f3;
+  --py: #7d6300;  --py-soft: #f6efd4;
+  --warn: #a3361b; --warn-soft: #fbe6df;
+  --ok: #2f7d32;
+  --hl-kw: #a33a0b; --hl-type: #2d68a8; --hl-str: #2f7d32; --hl-num: #8a4fb0;
+  --hl-com: #7b848f; --hl-fn: #0b6d73; --hl-mac: #b02a64;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121519; --surface: #191d22; --ink: #e5e8ec; --muted: #9aa3ae; --line: #2a3037;
+    --accent: #f08a50; --accent-ink: #1a0d05; --accent-soft: #3a2316;
+    --code-bg: #0e1114; --code-ink: #dfe3e8;
+    --cpp: #7fb0ea; --cpp-soft: #1b2a3b; --go: #5cc8cf; --go-soft: #143132; --py: #e0c45c; --py-soft: #322b12;
+    --warn: #f19275; --warn-soft: #3a1d15; --ok: #7cc47f;
+    --hl-kw: #f39a62; --hl-type: #84b6ef; --hl-str: #9ad08b; --hl-num: #d3a2f0;
+    --hl-com: #7b858f; --hl-fn: #6fd0d6; --hl-mac: #f08bb4;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121519; --surface: #191d22; --ink: #e5e8ec; --muted: #9aa3ae; --line: #2a3037;
+  --accent: #f08a50; --accent-ink: #1a0d05; --accent-soft: #3a2316;
+  --code-bg: #0e1114; --code-ink: #dfe3e8;
+  --cpp: #7fb0ea; --cpp-soft: #1b2a3b; --go: #5cc8cf; --go-soft: #143132; --py: #e0c45c; --py-soft: #322b12;
+  --warn: #f19275; --warn-soft: #3a1d15; --ok: #7cc47f;
+  --hl-kw: #f39a62; --hl-type: #84b6ef; --hl-str: #9ad08b; --hl-num: #d3a2f0;
+  --hl-com: #7b858f; --hl-fn: #6fd0d6; --hl-mac: #f08bb4;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--f-body); font-size: 17px; line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-underline-offset: 2px; }
+a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+.shell {
+  display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 48px;
+  max-width: 1180px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 32px 80px;
+}
+
+/* ---------- rail ---------- */
+.rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; max-height: calc(100vh - 48px); overflow-y: auto; padding-right: 4px; }
+.brand { display: flex; flex-direction: column; gap: 2px; margin-bottom: 22px; }
+.brand .mark { font-family: var(--f-display); font-weight: 700; font-size: 26px; letter-spacing: -0.02em; line-height: 1.1; }
+.brand .mark span { color: var(--accent); }
+.brand .sub { font-size: 14px; color: var(--muted); }
+.progress { margin: 0 0 22px; font-size: 13px; color: var(--muted); }
+.bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin-top: 6px; }
+.bar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+.toc { display: flex; flex-direction: column; gap: 18px; }
+.toc h4 { margin: 0 0 6px; font: 600 11px/1.3 var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+.toc a, .toc .soon {
+  display: grid; grid-template-columns: 30px 1fr; gap: 6px; align-items: baseline;
+  padding: 4px 8px; border-radius: 6px; font-size: 15px; line-height: 1.35; text-decoration: none; color: var(--ink);
+}
+.toc .n { font: 500 12px var(--f-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.toc a:hover { background: var(--surface); }
+.toc a[aria-current="page"] { background: var(--accent-soft); color: var(--ink); font-weight: 600; }
+.toc a[aria-current="page"] .n { color: var(--accent); }
+.toc .soon { color: var(--muted); opacity: .6; }
+.toc .done .n::after { content: " ✓"; color: var(--ok); }
+.menu-toggle { display: none; }
+
+/* ---------- main column ---------- */
+main { min-width: 0; }
+.view { max-width: 72ch; }
+.eyebrow { font: 600 12px/1 var(--f-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin: 0 0 12px; }
+h1, h2, h3 { font-family: var(--f-display); letter-spacing: -0.015em; text-wrap: balance; line-height: 1.15; }
+h1 { font-size: clamp(34px, 5vw, 48px); font-weight: 700; margin: 0 0 14px; }
+h2 { font-size: 27px; font-weight: 700; margin: 56px 0 14px; padding-top: 18px; border-top: 1px solid var(--line); }
+h3 { font-size: 20px; font-weight: 600; margin: 32px 0 8px; }
+.lede { font-size: 20px; color: var(--muted); margin: 0 0 24px; }
+p, li { max-width: 68ch; }
+ul, ol { padding-left: 1.3em; }
+li + li { margin-top: 4px; }
+strong { font-weight: 600; }
+
+.meta { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 14px; color: var(--muted); margin: 0 0 28px; }
+.meta b { color: var(--ink); font-weight: 600; }
+
+.goals { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px 22px; }
+.goals h4 { margin: 0 0 8px; font: 600 12px var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.goals ul { margin: 0; }
+
+code { font-family: var(--f-mono); font-size: .86em; background: var(--code-bg); color: var(--code-ink); padding: .1em .35em; border-radius: 4px; }
+pre { margin: 16px 0; background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; overflow-x: auto; position: relative; }
+pre code { display: block; padding: 16px 18px; background: none; font-size: 14px; line-height: 1.6; color: var(--code-ink); }
+pre[data-label]::before { content: attr(data-label); display: block; padding: 8px 18px 0; font: 600 11px var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+pre.out code { color: var(--muted); }
+.copy { position: absolute; top: 8px; right: 8px; font: 600 11px var(--f-mono); padding: 4px 8px; border-radius: 5px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer; opacity: 0; transition: opacity .15s; }
+pre:hover .copy, .copy:focus-visible { opacity: 1; }
+@media (hover: none) { .copy { opacity: 1; } }
+
+.hljs-keyword, .hljs-meta .hljs-keyword { color: var(--hl-kw); font-weight: 600; }
+.hljs-type, .hljs-built_in { color: var(--hl-type); }
+.hljs-string, .hljs-char\.escape { color: var(--hl-str); }
+.hljs-number, .hljs-literal { color: var(--hl-num); }
+.hljs-comment { color: var(--hl-com); font-style: italic; }
+.hljs-title.function_, .hljs-title { color: var(--hl-fn); }
+.hljs-meta, .hljs-attr { color: var(--hl-mac); }
+.hljs-section { color: var(--hl-kw); font-weight: 600; }
+
+.table-wrap { overflow-x: auto; margin: 16px 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 12px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); background: var(--bg); }
+tr:last-child td { border-bottom: 0; }
+td code { white-space: nowrap; }
+
+/* "Coming from…" notes */
+.from { border-left: 3px solid var(--c); background: var(--cs); border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 16px 0; }
+.from p { margin: 0; }
+.from p + p { margin-top: 6px; }
+.from .tag { display: inline-block; font: 600 11px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--c); margin-bottom: 4px; }
+.from.cpp { --c: var(--cpp); --cs: var(--cpp-soft); }
+.from.go  { --c: var(--go);  --cs: var(--go-soft); }
+.from.py  { --c: var(--py);  --cs: var(--py-soft); }
+.from.warn { --c: var(--warn); --cs: var(--warn-soft); }
+
+/* exercises */
+.ex { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 22px 8px; margin: 18px 0; }
+.ex-head { display: flex; gap: 12px; align-items: flex-start; }
+.ex-head input { margin-top: 6px; width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+.ex-head label { cursor: pointer; }
+.ex-head h3 { margin: 0; }
+.ex-head .file { font: 500 13px var(--f-mono); color: var(--muted); }
+.ex.is-done h3 { text-decoration: line-through; text-decoration-color: var(--muted); }
+details { margin: 10px 0 12px; border-top: 1px dashed var(--line); padding-top: 8px; }
+summary { cursor: pointer; font-weight: 600; color: var(--accent); font-size: 15px; }
+details > *:not(summary) { margin-top: 8px; }
+
+.course { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 20px 0; }
+.phase { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.phase h3 { margin: 0 0 2px; font-size: 18px; }
+.phase .when { font: 500 12px var(--f-mono); color: var(--muted); }
+.phase ol { list-style: none; padding: 0; margin: 10px 0 0; font-size: 15px; }
+.phase li { display: grid; grid-template-columns: 26px 1fr; gap: 6px; }
+.phase li .n { font: 500 12px/1.9 var(--f-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.phase li.proj { font-weight: 600; }
+
+.next { margin-top: 56px; padding: 20px 22px; border-radius: 12px; background: var(--accent-soft); }
+.next p { margin: 0; }
+.next b { font-family: var(--f-display); }
+
+@media (max-width: 900px) {
+  .shell { grid-template-columns: minmax(0, 1fr); gap: 20px; padding-block: 20px 64px; }
+  .rail { position: static; max-height: none; overflow: visible; border-bottom: 1px solid var(--line); padding-bottom: 16px; }
+  .menu-toggle { display: inline-flex; margin-top: 4px; font: 600 14px var(--f-body); padding: 6px 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+  .toc { display: none; margin-top: 16px; }
+  .rail.open .toc { display: flex; }
+  .progress { margin-bottom: 8px; }
+  h2 { margin-top: 44px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="shell">
+  <aside class="rail" id="rail">
+    <div class="brand">
+      <div class="mark">Rustic<span>.</span></div>
+      <div class="sub">Rust in 30 days, ending in Tauri desktop apps</div>
+    </div>
+    <div class="progress"><span id="progress-text">0 of 30 days complete</span><div class="bar"><i id="progress-bar"></i></div></div>
+    <button class="menu-toggle" id="menu-toggle" aria-expanded="false" aria-controls="toc">Chapters</button>
+    <nav class="toc" id="toc" aria-label="Chapters"></nav>
+  </aside>
+
+  <main id="main">
+
+<!-- =================================================================== OVERVIEW -->
+<section class="view" data-view="overview" hidden>
+  <p class="eyebrow">Course map</p>
+  <h1>From zero Rust to a shipped desktop app</h1>
+  <p class="lede">Thirty sessions of one to two hours. The first three weeks teach the language; the last week and a half builds desktop apps with Tauri 2 and a Svelte front end.</p>
+
+  <h2>How each day works</h2>
+  <ol>
+    <li>Read the day's chapter here. Concepts are explained by contrast with C++, Go and Python, since you already know those.</li>
+    <li>Do the exercises in <code>~/Projects/personal/rustic/dayNN/</code>. Tick them off as you go; your ticks are remembered in this browser.</li>
+    <li>Run <code>cargo fmt</code> and <code>cargo clippy</code>, then ask Claude for a review. Reviews cover idiom as well as correctness.</li>
+    <li>A new chapter is added to this booklet when you're ready for it.</li>
+  </ol>
+
+  <h2>The plan</h2>
+  <div class="course" id="course-grid"></div>
+  <p>If a topic needs more time, we slow down. The order matters more than the calendar.</p>
+
+  <h2>Your machine</h2>
+  <div class="table-wrap"><table>
+    <tr><th>Tool</th><th>State</th></tr>
+    <tr><td>rustc / cargo</td><td>1.100.0, via rustup</td></tr>
+    <tr><td>clippy, rustfmt, rust-src, rust-analyzer</td><td>Installed</td></tr>
+    <tr><td>VS Code</td><td>rust-analyzer extension installed</td></tr>
+    <tr><td>Tauri system libraries</td><td>webkit2gtk 4.1, gtk3, openssl, librsvg2, appindicator installed</td></tr>
+    <tr><td>tauri-cli, Node 24, npm 11</td><td>Installed; needed from Day 22</td></tr>
+  </table></div>
+</section>
+
+<!-- =================================================================== DAY 1 -->
+<article class="view" data-view="day-01" hidden>
+  <p class="eyebrow">Day 01 · Week 1 · Foundations</p>
+  <h1>Tooling and a syntax tour</h1>
+  <p class="lede">Get comfortable with cargo, then learn the core syntax in one pass. Most of it maps directly onto C++ and Go; the differences are where today's attention goes.</p>
+  <div class="meta"><span><b>Time</b> 1½–2 hours</span><span><b>Folder</b> <code>day01/</code></span><span><b>Book chapters</b> 1–3</span></div>
+
+  <div class="goals">
+    <h4>By the end of today you can</h4>
+    <ul>
+      <li>create, check, build, lint and format a project with cargo</li>
+      <li>write functions, loops and branches, and use Rust's numeric types without implicit conversions</li>
+      <li>use the fact that blocks, <code>if</code> and <code>loop</code> are expressions that produce values</li>
+      <li>read a rustc error message and act on it</li>
+    </ul>
+  </div>
+
+  <h2>0. Set up today's project</h2>
+  <p>Do this first. Everything today lives in <strong>one cargo project</strong> named <code>day01</code>, with one small program per exercise. You never create <code>Cargo.toml</code> or the project folder by hand; <code>cargo new</code> generates them. The only things you create yourself are the <code>src/bin/</code> folder and the exercise files inside it.</p>
+
+  <h3>Step 1: Let cargo generate the project</h3>
+<pre><code class="language-bash">cd ~/Projects/personal/rustic
+cargo new day01
+cd day01
+cargo run                  # prints "Hello, world!", so the toolchain works</code></pre>
+  <p>cargo just created <code>Cargo.toml</code>, <code>src/main.rs</code> and a git repository. Section 1 explains each of those files.</p>
+
+  <h3>Step 2: Create one file per exercise</h3>
+<pre><code class="language-bash">mkdir src/bin
+touch src/bin/ex1.rs src/bin/ex2.rs src/bin/ex3.rs src/bin/ex4.rs src/bin/oops.rs
+code .                     # open in VS Code; rust-analyzer starts indexing</code></pre>
+  <p>cargo automatically treats every <code>.rs</code> file in <code>src/bin/</code> as a separate program named after the file. You don't need to register them in <code>Cargo.toml</code>. Each one needs its own <code>main</code>, so start every file with this:</p>
+<pre data-label="src/bin/ex1.rs (starting point)"><code class="language-rust">fn main() {
+    println!("ex1 works");
+}</code></pre>
+
+  <h3>Step 3: Run one program at a time</h3>
+<pre><code class="language-bash">cargo run --bin ex1        # runs src/bin/ex1.rs
+cargo run --bin day01      # runs src/main.rs (named after the project)
+cargo run                  # error: lists available binaries; always pass --bin now
+cargo check                # type-checks all of them at once</code></pre>
+  <p>By the end of today your folder will look like this:</p>
+<pre><code class="language-plaintext">day01/
+├── Cargo.toml
+├── Cargo.lock
+└── src/
+    ├── main.rs        # the syntax tour from section 6
+    └── bin/
+        ├── ex1.rs
+        ├── ex2.rs
+        ├── ex3.rs
+        ├── ex4.rs
+        └── oops.rs    # bonus: paste one snippet at a time into main()</code></pre>
+
+  <h2>1. The toolchain</h2>
+  <p>Three tools cover everything:</p>
+  <ul>
+    <li><strong>rustup</strong> installs and switches compiler versions (stable, beta, nightly) and components. It's similar to pyenv.</li>
+    <li><strong>cargo</strong> is the build tool, package manager, test runner and doc generator. It does the jobs of <code>go build</code>, <code>go mod</code>, CMake and pip at once.</li>
+    <li><strong>rustc</strong> is the compiler. You'll almost never call it directly; cargo does.</li>
+  </ul>
+  <p>Libraries are called <strong>crates</strong> and come from <a href="https://crates.io" target="_blank" rel="noopener">crates.io</a>. Read any crate's documentation on <a href="https://docs.rs" target="_blank" rel="noopener">docs.rs</a>.</p>
+
+  <div class="table-wrap"><table>
+    <tr><th>Command</th><th>What it does</th></tr>
+    <tr><td><code>cargo new name</code></td><td>Creates a project with <code>Cargo.toml</code> and <code>src/main.rs</code>, and runs <code>git init</code></td></tr>
+    <tr><td><code>cargo check</code></td><td>Type-checks without producing a binary. The fastest feedback loop; use it constantly.</td></tr>
+    <tr><td><code>cargo run</code></td><td>Builds a debug binary and runs it. Arguments after <code>--</code> go to your program.</td></tr>
+    <tr><td><code>cargo build --release</code></td><td>Optimized build in <code>target/release/</code>. Often 10–50× faster than debug.</td></tr>
+    <tr><td><code>cargo clippy</code></td><td>The linter. It catches bugs and suggests the idiomatic version of your code.</td></tr>
+    <tr><td><code>cargo fmt</code></td><td>The formatter, like gofmt. Everyone uses the default style.</td></tr>
+    <tr><td><code>cargo test</code></td><td>Runs unit, integration and documentation tests (Day 17).</td></tr>
+    <tr><td><code>cargo doc --open</code></td><td>Builds HTML docs for your code and every dependency, available offline.</td></tr>
+    <tr><td><code>rustup doc --book</code></td><td>Opens <em>The Rust Programming Language</em> offline.</td></tr>
+  </table></div>
+
+  <h3>Anatomy of a project</h3>
+<pre data-label="cargo new day01"><code class="language-plaintext">day01/
+├── Cargo.toml        # manifest: name, edition, dependencies
+├── Cargo.lock        # exact resolved versions (commit it for binaries)
+├── src/
+│   ├── main.rs       # binary named after the package → cargo run --bin day01
+│   └── bin/          # each file here is an extra binary
+│       └── ex1.rs    #   → cargo run --bin ex1
+└── target/           # build output (git-ignored)</code></pre>
+<pre data-label="Cargo.toml"><code class="language-ini">[package]
+name = "day01"
+version = "0.1.0"
+edition = "2024"      # language edition; 2024 is current
+
+[dependencies]
+# none yet. Day 10 covers adding crates: cargo add serde</code></pre>
+  <p>A plain <code>cargo run</code> only works while the package has exactly one binary. As soon as <code>src/bin/</code> contains a file, cargo can't guess which program you mean, so you pass <code>--bin</code> every time. If you want a default, add <code>default-run = "day01"</code> under <code>[package]</code> in <code>Cargo.toml</code>.</p>
+  <p><strong>Editions</strong> let Rust make breaking syntax changes without splitting the ecosystem. Each crate picks its edition, and crates of different editions link together without problems. You'll only use 2024.</p>
+
+  <h2>2. Bindings: <code>let</code>, <code>mut</code> and shadowing</h2>
+<pre><code class="language-rust">let x = 5;          // immutable by default
+let mut y = 10;     // mutation is opt-in
+y += x;
+
+let x = x * 2;      // shadowing: a brand-new binding named x
+let spaces = "   ";
+let spaces = spaces.len();   // may even change type: &amp;str → usize
+
+const MAX_POINTS: u32 = 100_000;   // compile-time constant, type required, SCREAMING_CASE
+static GREETING: &amp;str = "hi";      // one fixed memory location for the whole program</code></pre>
+
+  <div class="from cpp"><span class="tag">Coming from C++</span>
+    <p><code>let</code> is roughly <code>const auto</code>, and <code>let mut</code> is <code>auto</code>. Making immutability the default reverses C++'s habit. Shadowing is not reassignment. It's like declaring a same-named variable in an inner scope, except Rust allows it in the same scope. The old <code>x</code> keeps its own memory and value until the end of the block; only the <em>name</em> now refers to the new variable. Anything that already pointed at the old one keeps seeing the old value. That includes references (<code>&amp;x</code>, Rust's checked pointers, covered on Day 3) and closures that captured it.</p></div>
+<pre><code class="language-rust">let x = 5;
+let r = &amp;x;          // reference to the first x
+let show = || x;     // closure that captured the first x
+let x = "five";      // a second, unrelated variable named x
+println!("{x} {r} {}", show());   // five 5 5</code></pre>
+  <div class="from go"><span class="tag">Coming from Go</span>
+    <p>There's no <code>:=</code> vs <code>=</code> distinction. <code>let</code> always creates a binding and <code>=</code> always assigns to an existing <code>mut</code> one. Unused variables are warnings, not errors; prefix the name with <code>_</code> to silence them.</p></div>
+  <div class="from py"><span class="tag">Coming from Python</span>
+    <p>Shadowing looks like rebinding a name to a new type, as Python allows, but every binding is statically typed. The compiler always knows the type of each <code>x</code>.</p></div>
+
+  <h2>3. Types</h2>
+  <div class="table-wrap"><table>
+    <tr><th>Kind</th><th>Types</th><th>Notes</th></tr>
+    <tr><td>Signed integers</td><td><code>i8 i16 i32 i64 i128 isize</code></td><td><code>i32</code> is the default for integer literals</td></tr>
+    <tr><td>Unsigned integers</td><td><code>u8 u16 u32 u64 u128 usize</code></td><td><code>usize</code> is for lengths and indexes, pointer-sized</td></tr>
+    <tr><td>Floats</td><td><code>f32 f64</code></td><td><code>f64</code> is the default</td></tr>
+    <tr><td>Boolean</td><td><code>bool</code></td><td>never converts to or from integers implicitly</td></tr>
+    <tr><td>Character</td><td><code>char</code></td><td>4 bytes, one Unicode scalar value. <code>'🦀'</code> is a single char.</td></tr>
+    <tr><td>Tuple</td><td><code>(i32, f64, char)</code></td><td>access with <code>t.0</code> or destructure with <code>let (a, b, c) = t;</code></td></tr>
+    <tr><td>Array</td><td><code>[u8; 4]</code></td><td>fixed length that is part of the type, stored on the stack</td></tr>
+    <tr><td>Unit</td><td><code>()</code></td><td>the "nothing" value. A function with no return type returns <code>()</code>.</td></tr>
+  </table></div>
+  <p>Literals can carry a suffix (<code>5u8</code>, <code>2.0f32</code>) and underscores (<code>1_000_000</code>). Hex, octal, binary and byte literals are <code>0xff</code>, <code>0o77</code>, <code>0b1010</code> and <code>b'A'</code>.</p>
+
+  <h3>No implicit numeric conversions</h3>
+<pre><code class="language-rust">let a: i32 = 7;
+let b: i64 = 3;
+// let c = a + b;          // error: mismatched types
+let c = a as i64 + b;      // `as` casts. It can silently truncate or wrap: 300 as u8 == 44
+let d = i64::from(a) + b;  // lossless conversion; compiles only if it can never fail
+let e: u8 = u8::try_from(300_i32).unwrap_or(u8::MAX);  // checked conversion that can fail</code></pre>
+  <p>Prefer <code>From</code> where it exists. Reach for <code>as</code> mainly for float↔int and for indexes (<code>i as usize</code>), and remember that it never complains.</p>
+
+  <h3>Overflow is defined behaviour</h3>
+  <div class="from warn"><span class="tag">Different from C++</span>
+    <p>In C++, signed overflow is undefined behaviour. In Rust it is always defined: a <strong>debug</strong> build panics with <em>attempt to add with overflow</em>, and a <strong>release</strong> build wraps around. When overflow is a real possibility, state the behaviour you want explicitly:</p></div>
+<pre><code class="language-rust">let x: u8 = 250;
+x.checked_add(10)     // None (Some(v) if it fits)
+x.wrapping_add(10)    // 4
+x.saturating_add(10)  // 255
+x.overflowing_add(10) // (4, true)</code></pre>
+
+  <p>A <code>u8</code> holds 0 to 255. The true result of 250 + 10 is 260, which doesn't fit. All four methods compute the same addition; they differ only in <em>what to do when the true result is out of range</em>. When it fits, they all agree: <code>250u8.checked_add(5)</code> is <code>Some(255)</code>, <code>wrapping_add(5)</code> and <code>saturating_add(5)</code> are <code>255</code>, and <code>overflowing_add(5)</code> is <code>(255, false)</code>.</p>
+
+  <div class="table-wrap"><table>
+    <tr><th>Method</th><th>Returns</th><th>On overflow</th><th>Use it when</th></tr>
+    <tr><td><code>checked_add</code></td><td><code>Option&lt;u8&gt;</code></td><td><code>None</code>; you must handle that case</td><td>Overflow means bad input or a bug, such as sizes, offsets, money, or a length read from a file</td></tr>
+    <tr><td><code>wrapping_add</code></td><td><code>u8</code></td><td>Wraps modulo 2⁸: 260 − 256 = 4</td><td>Wrapping is the intended maths, as in hashes, checksums, random number generators and ring-buffer indexes</td></tr>
+    <tr><td><code>saturating_add</code></td><td><code>u8</code></td><td>Clamps to the type's limit, 255</td><td>Values that should stop at a limit, such as volume, progress, health points or retry counters</td></tr>
+    <tr><td><code>overflowing_add</code></td><td><code>(u8, bool)</code></td><td>The wrapped value, plus <code>true</code></td><td>You need both the result and the carry, as in big-number or multi-word arithmetic</td></tr>
+  </table></div>
+
+  <h3>How each one looks in practice</h3>
+<pre><code class="language-rust">// checked: Option forces you to decide what None means
+let total = 250u8.checked_add(10).unwrap_or(u8::MAX);     // a fallback value
+match len.checked_mul(size) {                             // or branch on it
+    Some(bytes) => allocate(bytes),
+    None => return Err("buffer too large"),               // Day 8 covers this properly
+}
+
+// wrapping: deliberate modular arithmetic, the FNV-1a hash step
+hash = (hash ^ u32::from(byte)).wrapping_mul(16_777_619);
+
+// saturating: unsigned subtraction that stops at zero
+let remaining = budget.saturating_sub(spent);              // 3 - 5 gives 0, not a panic
+
+// overflowing: add two 128-bit numbers stored as (hi, lo) pairs of u64
+let (lo, carry) = a_lo.overflowing_add(b_lo);
+let hi = a_hi + b_hi + u64::from(carry);                  // From&lt;bool&gt;: true is 1</code></pre>
+
+  <h3>Signed types, subtraction and other operations</h3>
+  <p>Each method family exists for every integer type and covers most operations: <code>add</code>, <code>sub</code>, <code>mul</code>, <code>div</code>, <code>rem</code>, <code>pow</code>, <code>neg</code>, <code>abs</code>, <code>shl</code> and <code>shr</code>. A few cases that surprise people:</p>
+<pre><code class="language-rust">127i8.wrapping_add(1)      // -128   two's complement wrap past i8::MAX
+127i8.saturating_add(1)    // 127
+3u8.wrapping_sub(5)        // 254    unsigned underflow wraps to the top
+3u8.saturating_sub(5)      // 0
+10u32.checked_div(0)       // None   no division-by-zero panic
+i32::MIN.checked_div(-1)   // None   the result, 2³¹, doesn't fit in i32
+2u32.checked_pow(40)       // None</code></pre>
+
+  <h3>And plain <code>+</code>?</h3>
+  <p>Plain operators are for when you are confident the result fits. If you're wrong, a debug build stops with <em>attempt to add with overflow</em> at the exact line, and a release build wraps silently, because checking every operation costs speed. To keep the checks in release builds, add this to <code>Cargo.toml</code>:</p>
+<pre data-label="Cargo.toml"><code class="language-ini">[profile.release]
+overflow-checks = true</code></pre>
+  <p>Rule of thumb: use plain operators by default. When a value comes from outside your program or could plausibly be large, pick one of the four methods, and the name of the method tells the next reader what you intended.</p>
+  <p>Array indexing is bounds-checked too. Reading out of range panics instead of corrupting memory. Safe Rust has no undefined behaviour at all; that's the language's central promise.</p>
+
+  <h2>4. Everything is an expression</h2>
+  <p>This is the biggest syntax shift from C++, Go and Python. A block <code>{ … }</code> evaluates to its last expression, as long as that expression has <strong>no trailing semicolon</strong>. A semicolon turns an expression into a statement whose value is <code>()</code>.</p>
+<pre><code class="language-rust">let z = {
+    let t = 3;
+    t * t           // no semicolon → the block's value is 9
+};
+
+// if is an expression, so there's no separate ternary operator
+let parity = if z % 2 == 0 { "even" } else { "odd" };
+
+// loop can return a value through break
+let mut n = 0;
+let first_square_over_50 = loop {
+    n += 1;
+    if n * n > 50 {
+        break n * n;
+    }
+};
+
+// while works as you'd expect
+while n > 0 { n -= 1; }
+
+// for iterates over anything iterable. Ranges are half-open by default.
+for i in 0..3 { print!("{i} "); }     // 0 1 2
+for i in 0..=3 { print!("{i} "); }    // 0 1 2 3
+for i in (0..10).rev().step_by(3) { print!("{i} "); }  // 9 6 3 0
+
+for (i, ch) in "héllo".chars().enumerate() {
+    println!("{i}: {ch}");            // iterates Unicode chars, not bytes
+}
+
+// labels break out of nested loops, like Go
+'outer: for x in 0..10 {
+    for y in 0..10 {
+        if x * y == 42 { println!("{x}×{y}"); break 'outer; }
+    }
+}</code></pre>
+  <p>Conditions must be <code>bool</code>. Writing <code>if n { … }</code> with an integer is a type error, which removes a whole category of C bugs. The parentheses around conditions are optional, and leaving them out is idiomatic. The braces are mandatory.</p>
+
+  <h2>5. Functions and formatting macros</h2>
+<pre><code class="language-rust">fn add(a: i32, b: i32) -> i32 {
+    a + b               // implicit return of the final expression
+}
+
+fn clamp_to_byte(v: i32) -> u8 {
+    if v &lt; 0 { return 0; }      // `return` is for early exits
+    if v > 255 { return 255; }
+    v as u8
+}</code></pre>
+  <p>Parameter and return types are always written out; inside function bodies, types are inferred. This is a deliberate choice: function signatures are the contract, so they stay explicit. Function names use <code>snake_case</code> and types use <code>CamelCase</code>. The compiler warns when you don't follow these conventions.</p>
+  <p>Anything ending in <code>!</code> is a <strong>macro</strong>. <code>println!</code> is a macro so it can take a variable number of arguments and check the format string at compile time.</p>
+  <div class="table-wrap"><table>
+    <tr><th>Format</th><th>Meaning</th><th>Example output</th></tr>
+    <tr><td><code>{}</code></td><td>Display, the user-facing form</td><td><code>3.5</code></td></tr>
+    <tr><td><code>{:?}</code> / <code>{:#?}</code></td><td>Debug form / pretty-printed Debug form</td><td><code>[1, 2]</code>, <code>"hi"</code></td></tr>
+    <tr><td><code>{x}</code></td><td>Inline variable name (works with plain names only, not expressions)</td><td></td></tr>
+    <tr><td><code>{:>8.2}</code></td><td>Right-align, width 8, 2 decimal places</td><td><code>&nbsp;&nbsp;-40.00</code></td></tr>
+    <tr><td><code>{:&lt;10}</code> <code>{:^10}</code></td><td>Left-align / centre</td><td></td></tr>
+    <tr><td><code>{:05}</code> <code>{:x}</code> <code>{:b}</code></td><td>Zero-pad / hexadecimal / binary</td><td><code>00042</code> <code>ff</code> <code>101</code></td></tr>
+  </table></div>
+  <p>Related macros: <code>print!</code>, <code>eprintln!</code> (writes to stderr), <code>format!</code> (returns a <code>String</code>), <code>panic!</code>, <code>assert!</code>, <code>assert_eq!</code>, <code>todo!()</code> (compiles as a placeholder, panics when run), and <code>dbg!(expr)</code>, which prints the file, line and value and returns the value so you can wrap any expression with it.</p>
+
+  <h2>6. Putting it together</h2>
+  <p>Replace the contents of <code>src/main.rs</code> in your <code>day01</code> project with this, run <code>cargo run --bin day01</code>, and check the output below. It compiles cleanly on 1.100.</p>
+<pre data-label="src/main.rs"><code class="language-rust">const MAX: u32 = 100;
+
+fn main() {
+    let x = 5;
+    let mut y = 10;
+    y += x;
+
+    let x = x * 2;
+    let spaces = "   ";
+    let spaces = spaces.len();
+
+    let a: i32 = 7;
+    let b: i64 = 3;
+    let c = a as i64 + b;
+    let d = i64::from(a) + b;
+
+    let parity = if c % 2 == 0 { "even" } else { "odd" };
+    let z = {
+        let t = 3;
+        t * t
+    };
+
+    let mut n = 0;
+    let first_sq_over_50 = loop {
+        n += 1;
+        if n * n > 50 {
+            break n * n;
+        }
+    };
+
+    let tup: (i32, f64, char) = (1, 2.0, '🦀');
+    let (p, q, r) = tup;
+    let arr = [0u8; 4];
+
+    println!("{y} {x} {spaces} {c} {d} {parity} {z} {first_sq_over_50} {MAX}");
+    println!("{tup:?} {p} {q} {r} {arr:?}");
+    println!("{}", add(2, 3));
+}
+
+fn add(a: i32, b: i32) -> i32 {
+    a + b
+}</code></pre>
+<pre class="out" data-label="output"><code class="language-plaintext">15 10 3 10 10 even 9 64 100
+(1, 2.0, '🦀') 1 2 🦀 [0, 0, 0, 0]
+5</code></pre>
+
+  <h2>7. Exercises</h2>
+  <p>Each exercise goes in its own file in <code>src/bin/</code>, which you created in section 0. Run each with <code>cargo run --bin exN</code>.</p>
+
+  <div class="ex" data-ex="d1-ex1">
+    <div class="ex-head"><input type="checkbox" id="d1-ex1"><label for="d1-ex1"><h3>Temperature table</h3><span class="file">src/bin/ex1.rs</span></label></div>
+    <p>Print a Fahrenheit-to-Celsius table from −40 °F to 220 °F in steps of 20. Write <code>fn f_to_c(f: f64) -> f64</code>. Print a header row, and right-align both columns to two decimal places.</p>
+    <details><summary>Hint</summary>
+      <p>Integer ranges have <code>.step_by(n)</code>: <code>(-40..=220).step_by(20)</code> yields <code>i32</code>s. Converting <code>i32</code> to <code>f64</code> is lossless, so <code>f64::from(f)</code> works and is better than <code>as</code>. Format with <code>{:>8.2}</code>.</p></details>
+    <details><summary>Check your output</summary>
+      <p>Two rows to check: −40 °F is −40.00 °C, and 220 °F is 104.44 °C.</p></details>
+  </div>
+
+  <div class="ex" data-ex="d1-ex2">
+    <div class="ex-head"><input type="checkbox" id="d1-ex2"><label for="d1-ex2"><h3>FizzBuzz as one expression</h3><span class="file">src/bin/ex2.rs</span></label></div>
+    <p>Write <code>fn fizzbuzz(n: u32) -> String</code> whose whole body is a single <code>match</code> on the tuple <code>(n % 3, n % 5)</code>. Print the results for 1 to 30.</p>
+    <details><summary>Hint</summary>
+      <p><code>match</code> is like a <code>switch</code> that must cover every possible case and that produces a value. Patterns can be tuples, and <code>_</code> matches anything. Each arm looks like <code>(0, 0) => "FizzBuzz".to_string(),</code>. Order matters: the first arm that matches wins. For the fallback arm, use <code>n.to_string()</code>. Day 6 covers <code>match</code> in depth.</p></details>
+  </div>
+
+  <div class="ex" data-ex="d1-ex3">
+    <div class="ex-head"><input type="checkbox" id="d1-ex3"><label for="d1-ex3"><h3>Where Fibonacci overflows</h3><span class="file">src/bin/ex3.rs</span></label></div>
+    <p>Using <code>u64</code>, find the largest <code>n</code> for which <code>fib(n)</code> fits, taking <code>fib(1) = fib(2) = 1</code>. Compute iteratively and stop at the first overflow using <code>checked_add</code>. Then repeat with <code>u128</code>.</p>
+    <details><summary>Hint</summary>
+      <p><code>checked_add</code> returns an <code>Option&lt;u64&gt;</code>, which is either <code>Some(value)</code> or <code>None</code>. Handle it with:</p>
+<pre><code class="language-rust">match a.checked_add(b) {
+    Some(sum) => { /* advance */ }
+    None => break,
+}</code></pre>
+      <p>Bonus: write the loop as <code>let n = loop { … break n; };</code> so the loop itself produces the answer.</p></details>
+    <details><summary>Check your answer</summary>
+      <p>u64: <code>n = 93</code>, and fib(93) = 12200160415121876738. u128: <code>n = 186</code>.</p></details>
+  </div>
+
+  <div class="ex" data-ex="d1-ex4">
+    <div class="ex-head"><input type="checkbox" id="d1-ex4"><label for="d1-ex4"><h3>Collatz, debug vs release</h3><span class="file">src/bin/ex4.rs</span></label></div>
+    <p>The Collatz step is: if <code>x</code> is even, <code>x / 2</code>; otherwise <code>3x + 1</code>. Repeat until <code>x</code> reaches 1. Find the starting number below 5,000,000 with the longest chain, then time both kinds of build:</p>
+<pre><code class="language-bash">time cargo run --bin ex4
+time cargo run --release --bin ex4</code></pre>
+    <details><summary>Hint</summary>
+      <p>First try it with <code>u32</code> in a debug build. The overflow panic you get is Rust doing its job. Look at how big the intermediate values get, then switch to <code>u64</code>. Think about what the same <code>u32</code> code would have done silently in a release build.</p></details>
+    <details><summary>Check your answer</summary>
+      <p>Start 3,732,423, chain length 597 including the start and the final 1. The largest intermediate value in the range is about 1.3 × 10¹², which doesn't fit in a <code>u32</code>. A release build here takes about 1.5 s.</p></details>
+  </div>
+
+  <div class="ex" data-ex="d1-ex5">
+    <div class="ex-head"><input type="checkbox" id="d1-ex5"><label for="d1-ex5"><h3>Bonus: predict the compiler error</h3><span class="file">src/bin/oops.rs, one snippet at a time</span></label></div>
+    <p>For each snippet, write down the error you expect before compiling. Then read rustc's full message, including the <code>help:</code> lines.</p>
+<pre><code class="language-rust">let v = 5; v = 6;                                  // 1
+let a: i32 = 1; let b: i64 = 2; let c = a + b;     // 2
+let x = if true { 1 } else { "one" };              // 3
+let y: u8 = 256;                                   // 4</code></pre>
+    <details><summary>Reveal the real errors (rustc 1.100)</summary>
+<pre class="out"><code class="language-plaintext">1  error[E0384]: cannot assign twice to immutable variable `v`
+2  error[E0308]: mismatched types
+   error[E0277]: cannot add `i64` to `i32`
+3  error[E0308]: `if` and `else` have incompatible types
+4  error: literal out of range for `u8`</code></pre>
+      <p>Run <code>rustc --explain E0384</code> for a long-form explanation of any error code.</p></details>
+  </div>
+
+  <h2>Before you ask for a review</h2>
+  <ul>
+    <li><code>cargo fmt</code> has been run.</li>
+    <li><code>cargo clippy</code> shows no warnings. If it does, read them; each one is a short lesson.</li>
+    <li>Every binary runs with <code>cargo run --bin exN</code>.</li>
+  </ul>
+  <p>Then tell Claude <em>"Day 1 done"</em>.</p>
+
+  <h3>Optional reading</h3>
+  <ul>
+    <li><a href="https://doc.rust-lang.org/book/ch01-00-getting-started.html" target="_blank" rel="noopener">The Rust Book</a>, chapters 1–3 (or offline: <code>rustup doc --book</code>)</li>
+    <li><a href="https://doc.rust-lang.org/rust-by-example/primitives.html" target="_blank" rel="noopener">Rust by Example: Primitives</a></li>
+  </ul>
+
+  <div class="next"><p><b>Next: Day 2, Ownership.</b> Who owns a value, what happens on assignment, and why Rust needs neither a garbage collector nor manual <code>delete</code>. It's the most important day of the course.</p></div>
+</article>
+
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+const COURSE = [
+  { phase: "Foundations", when: "Week 1", days: [
+    [1, "Tooling and a syntax tour"], [2, "Ownership"], [3, "Borrowing and slices"],
+    [4, "Ownership lab"], [5, "Structs and methods"], [6, "Enums, match, Option"],
+    [7, "Project: CLI games", true] ] },
+  { phase: "Real programs", when: "Week 2", days: [
+    [8, "Error handling"], [9, "Collections"], [10, "Modules and crates"],
+    [11, "Traits"], [12, "Generics and trait objects"], [13, "Lifetimes"],
+    [14, "Project: notes CLI", true] ] },
+  { phase: "Idiomatic Rust", when: "Week 3", days: [
+    [15, "Closures and iterators"], [16, "Smart pointers"], [17, "Testing"],
+    [18, "Threads and sync"], [19, "Async and tokio"], [20, "Errors and logging"],
+    [21, "Project: async fetcher", true] ] },
+  { phase: "Tauri desktop apps", when: "Days 22–30", days: [
+    [22, "Tauri architecture"], [23, "Commands and IPC"], [24, "State and events"],
+    [25, "Svelte for backend devs"], [26, "Plugins and permissions"], [27, "SQLite persistence"],
+    [28, "Capstone, part 1", true], [29, "Capstone, part 2", true], [30, "Packaging and next steps"] ] },
+];
+const pad = n => String(n).padStart(2, "0");
+const views = [...document.querySelectorAll("[data-view]")];
+const has = id => views.some(v => v.dataset.view === id);
+
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+const ticks = store.get("rustic-ticks") || {};
+
+function dayDone(n) {
+  const exs = document.querySelectorAll(`[data-view="day-${pad(n)}"] .ex`);
+  return exs.length > 0 && [...exs].filter(e => !e.querySelector("h3").textContent.startsWith("Bonus")).every(e => ticks[e.dataset.ex]);
+}
+
+function buildToc() {
+  const toc = document.getElementById("toc");
+  let html = `<div><h4>Start here</h4><ol><li><a href="#overview" data-link="overview"><span class="n">··</span><span>Course map</span></a></li></ol></div>`;
+  for (const p of COURSE) {
+    html += `<div><h4>${p.when} · ${p.phase}</h4><ol>`;
+    for (const [n, t] of p.days) {
+      const id = `day-${pad(n)}`;
+      html += has(id)
+        ? `<li class="${dayDone(n) ? "done" : ""}"><a href="#${id}" data-link="${id}"><span class="n">${pad(n)}</span><span>${t}</span></a></li>`
+        : `<li><span class="soon" title="Added when you get there"><span class="n">${pad(n)}</span><span>${t}</span></span></li>`;
+    }
+    html += `</ol></div>`;
+  }
+  toc.innerHTML = html;
+
+  const grid = document.getElementById("course-grid");
+  grid.innerHTML = COURSE.map(p => `<div class="phase"><h3>${p.phase}</h3><div class="when">${p.when}</div><ol>${
+    p.days.map(([n, t, proj]) => `<li class="${proj ? "proj" : ""}"><span class="n">${pad(n)}</span><span>${has("day-" + pad(n)) ? `<a href="#day-${pad(n)}">${t}</a>` : t}</span></li>`).join("")
+  }</ol></div>`).join("");
+
+  const done = COURSE.flatMap(p => p.days).filter(([n]) => dayDone(n)).length;
+  document.getElementById("progress-text").textContent = `${done} of 30 days complete`;
+  document.getElementById("progress-bar").style.width = `${(done / 30) * 100}%`;
+}
+
+function latestDay() {
+  const days = views.map(v => v.dataset.view).filter(v => v.startsWith("day-")).sort();
+  return days[days.length - 1] || "overview";
+}
+
+function route() {
+  const want = location.hash.slice(1);
+  const id = has(want) ? want : latestDay();
+  views.forEach(v => v.hidden = v.dataset.view !== id);
+  document.querySelectorAll("[data-link]").forEach(a => { if (a.dataset.link === id) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+  document.getElementById("rail").classList.remove("open");
+  document.getElementById("menu-toggle").setAttribute("aria-expanded", "false");
+  if (want) window.scrollTo(0, 0);
+}
+
+document.querySelectorAll(".ex").forEach(ex => {
+  const box = ex.querySelector("input[type=checkbox]");
+  box.checked = !!ticks[ex.dataset.ex];
+  ex.classList.toggle("is-done", box.checked);
+  box.addEventListener("change", () => {
+    ticks[ex.dataset.ex] = box.checked;
+    store.set("rustic-ticks", ticks);
+    ex.classList.toggle("is-done", box.checked);
+    buildToc(); route();
+  });
+});
+
+document.getElementById("menu-toggle").addEventListener("click", () => {
+  const rail = document.getElementById("rail");
+  const open = rail.classList.toggle("open");
+  document.getElementById("menu-toggle").setAttribute("aria-expanded", String(open));
+});
+
+document.querySelectorAll("pre").forEach(pre => {
+  const btn = document.createElement("button");
+  btn.className = "copy"; btn.type = "button"; btn.textContent = "Copy";
+  btn.addEventListener("click", async () => {
+    const text = pre.querySelector("code").innerText;
+    try { await navigator.clipboard.writeText(text); btn.textContent = "Copied"; }
+    catch {
+      const r = document.createRange(); r.selectNodeContents(pre.querySelector("code"));
+      const s = getSelection(); s.removeAllRanges(); s.addRange(r); btn.textContent = "Selected";
+    }
+    setTimeout(() => btn.textContent = "Copy", 1400);
+  });
+  pre.appendChild(btn);
+});
+
+if (window.hljs) document.querySelectorAll("pre code").forEach(el => hljs.highlightElement(el));
+
+buildToc();
+route();
+window.addEventListener("hashchange", route);
+</script>
