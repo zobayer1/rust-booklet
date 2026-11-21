@@ -274,7 +274,7 @@ cargo check                # type-checks all of them at once</code></pre>
 ├── Cargo.toml
 ├── Cargo.lock
 └── src/
-    ├── main.rs        # the syntax tour from section 6
+    ├── main.rs        # the syntax tour from section 7
     └── bin/
         ├── ex1.rs
         ├── ex2.rs
@@ -296,7 +296,7 @@ cargo check                # type-checks all of them at once</code></pre>
     <tr><td><code>cargo new name</code></td><td>Creates a project with <code>Cargo.toml</code> and <code>src/main.rs</code>, and runs <code>git init</code></td></tr>
     <tr><td><code>cargo check</code></td><td>Type-checks without producing a binary. The fastest feedback loop; use it constantly.</td></tr>
     <tr><td><code>cargo run</code></td><td>Builds a debug binary and runs it. Arguments after <code>--</code> go to your program.</td></tr>
-    <tr><td><code>cargo build --release</code></td><td>Optimized build in <code>target/release/</code>. Often 10–50× faster than debug.</td></tr>
+    <tr><td><code>cargo build --release</code></td><td>Optimized build in <code>target/release/</code>. Usually 2× faster than debug for simple arithmetic loops, and 10× or more for code built on iterators and small functions, which only become fast once the optimizer inlines them.</td></tr>
     <tr><td><code>cargo clippy</code></td><td>The linter. It catches bugs and suggests the idiomatic version of your code.</td></tr>
     <tr><td><code>cargo fmt</code></td><td>The formatter, like gofmt. Everyone uses the default style.</td></tr>
     <tr><td><code>cargo test</code></td><td>Runs unit, integration and documentation tests (Day 17).</td></tr>
@@ -486,7 +486,92 @@ fn clamp_to_byte(v: i32) -> u8 {
   </table></div>
   <p>Related macros: <code>print!</code>, <code>eprintln!</code> (writes to stderr), <code>format!</code> (returns a <code>String</code>), <code>panic!</code>, <code>assert!</code>, <code>assert_eq!</code>, <code>todo!()</code> (compiles as a placeholder, panics when run), and <code>dbg!(expr)</code>, which prints the file, line and value and returns the value so you can wrap any expression with it.</p>
 
-  <h2>6. Putting it together</h2>
+  <h2>6. Just enough <code>match</code> and <code>Option</code></h2>
+  <p>Exercises 2 and 3 need these two tools. Day 6 covers them in depth; this section is the working subset you need today.</p>
+
+  <h3><code>match</code>: a switch that must cover every case</h3>
+<pre><code class="language-rust">fn size(n: u32) -> &amp;'static str {
+    match n {
+        0 => "none",
+        1 | 2 | 3 => "a few",      // | means "or"
+        4..=9 => "several",        // an inclusive range
+        _ => "many",               // _ matches anything: the catch-all
+    }
+}
+
+fn quadrant(x: i32, y: i32) -> &amp;'static str {
+    match (x >= 0, y >= 0) {       // match on a tuple: both values at once
+        (true, true) => "I",
+        (false, true) => "II",
+        (false, false) => "III",
+        (true, false) => "IV",
+    }
+}
+// size(2) is "a few", quadrant(3, -1) is "IV"</code></pre>
+  <ul>
+    <li><strong>Arms are tried from top to bottom, and the first one that matches wins.</strong> Put specific patterns before general ones.</li>
+    <li><strong>A <code>match</code> must cover every possible value.</strong> Remove the <code>_</code> arm from <code>size</code> and it won't compile: <code>error[E0004]: non-exhaustive patterns: `10_u32..=u32::MAX` not covered</code>. <code>quadrant</code> needs no <code>_</code> because its four arms already cover every combination of two <code>bool</code>s.</li>
+    <li><strong><code>match</code> is an expression.</strong> Every arm must produce the same type, and the whole <code>match</code> can be a function's tail expression, as in both functions above.</li>
+    <li>Inside a tuple pattern, <code>_</code> ignores just that position: <code>(0, _)</code> means "the first value is 0, and the second can be anything."</li>
+  </ul>
+  <div class="from cpp"><span class="tag">Coming from C++ and Go</span>
+    <p>Unlike <code>switch</code>, arms never fall through, so there's no <code>break</code>. The compiler also rejects a <code>match</code> that misses a case, which is what makes it safe.</p></div>
+
+  <h3><code>Option</code>: a value that might be missing</h3>
+  <p>Methods like <code>checked_add</code> return an <code>Option&lt;u8&gt;</code>. It's always one of two things: <code>Some(value)</code> when there is a value, or <code>None</code> when there isn't. You can't use it as a plain number. The compiler makes you deal with the <code>None</code> case first:</p>
+<pre><code class="language-rust">let r = 250u8.checked_add(5);   // Some(255)
+let v: u8 = r + 1;              // error[E0369]: cannot add `{integer}` to `Option&lt;u8&gt;`</code></pre>
+  <div class="from go"><span class="tag">Coming from Go, C++ and Python</span>
+    <p>This plays the role of Go's <code>v, ok := …</code>, C++'s <code>std::optional</code> and Python's <code>None</code>. The difference is that you can't forget to check: the value is only reachable through one of the patterns below.</p></div>
+  <p>These are the four ways to get the value out, each a complete program fragment:</p>
+<pre><code class="language-rust">// 1. match: handle both cases explicitly
+match 250u8.checked_add(5) {
+    Some(v) => println!("fits: {v}"),   // v is a plain u8 inside this arm
+    None => println!("overflow"),
+}
+
+// 2. match used as a value
+let x = match 250u8.checked_add(5) {
+    Some(v) => v,
+    None => 0,
+};
+
+// 3. if let: you only care about the Some case
+if let Some(v) = 200u8.checked_add(50) {
+    println!("{v}");                    // 250
+}
+
+// 4. unwrap_or: give a fallback value
+let total = 250u8.checked_add(10).unwrap_or(u8::MAX);   // 255</code></pre>
+
+  <h3><code>let … else</code>: get the value or leave</h3>
+  <p>When the rest of a function only makes sense if a value exists, use <code>let … else</code>. If the pattern doesn't match, the <code>else</code> block runs, and it <strong>must leave</strong> the current flow with <code>return</code>, <code>break</code> or <code>continue</code>:</p>
+<pre><code class="language-rust">fn label(a: u8, b: u8) -> String {
+    let Some(sum) = a.checked_add(b) else {
+        return "overflow".to_string();  // must match the function's return type: String
+    };
+    format!("sum is {sum}")             // sum is a plain u8 from here on
+}
+
+fn main() {
+    println!("{}", label(1, 2));        // sum is 3
+    println!("{}", label(250, 10));     // overflow
+}</code></pre>
+  <div class="from warn"><span class="tag">Common mistake</span>
+    <p><code>return</code> leaves the <em>enclosing function</em>, so its value must match that function's return type. Inside <code>main</code>, which returns <code>()</code>, <code>return "overflow".to_string();</code> fails with <code>error[E0308]: mismatched types</code>. There you'd write <code>println!("overflow"); return;</code>. Inside a loop, use <code>break</code> or <code>continue</code>.</p></div>
+  <p>You'll also see <code>.unwrap()</code> and <code>.expect("why")</code>. They return the value, or <strong>panic</strong> on <code>None</code>. They're fine for quick experiments, but don't rely on them in real code.</p>
+
+  <h3>Printing tuples and Options</h3>
+  <p><code>{}</code> only works for types with an obvious user-facing format, such as numbers and strings. Tuples and <code>Option</code>s need the debug format, <code>{:?}</code>:</p>
+<pre><code class="language-rust">let pair = 250u8.overflowing_add(10);
+println!("{}", pair);        // error[E0277]: `(u8, bool)` doesn't implement `std::fmt::Display`
+println!("{pair:?}");        // (4, true)
+println!("{:?}", 250u8.checked_add(5));   // Some(255)
+
+let (value, wrapped) = pair; // or take the parts out and print them normally
+println!("{value} {wrapped}");             // 4 true</code></pre>
+
+  <h2>7. Putting it together</h2>
   <p>Replace the contents of <code>src/main.rs</code> in your <code>day01</code> project with this, run <code>cargo run --bin day01</code>, and check the output below. It compiles cleanly on 1.100.</p>
 <pre data-label="src/main.rs"><code class="language-rust">const MAX: u32 = 100;
 
@@ -534,7 +619,7 @@ fn add(a: i32, b: i32) -> i32 {
 (1, 2.0, '🦀') 1 2 🦀 [0, 0, 0, 0]
 5</code></pre>
 
-  <h2>7. Exercises</h2>
+  <h2>8. Exercises</h2>
   <p>Each exercise goes in its own file in <code>src/bin/</code>, which you created in section 0. Run each with <code>cargo run --bin exN</code>.</p>
 
   <div class="ex" data-ex="d1-ex1">
@@ -550,14 +635,14 @@ fn add(a: i32, b: i32) -> i32 {
     <div class="ex-head"><input type="checkbox" id="d1-ex2"><label for="d1-ex2"><h3>FizzBuzz as one expression</h3><span class="file">src/bin/ex2.rs</span></label></div>
     <p>Write <code>fn fizzbuzz(n: u32) -> String</code> whose whole body is a single <code>match</code> on the tuple <code>(n % 3, n % 5)</code>. Print the results for 1 to 30.</p>
     <details><summary>Hint</summary>
-      <p><code>match</code> is like a <code>switch</code> that must cover every possible case and that produces a value. Patterns can be tuples, and <code>_</code> matches anything. Each arm looks like <code>(0, 0) => "FizzBuzz".to_string(),</code>. Order matters: the first arm that matches wins. For the fallback arm, use <code>n.to_string()</code>. Day 6 covers <code>match</code> in depth.</p></details>
+      <p><code>match</code> is like a <code>switch</code> that must cover every possible case and that produces a value. Patterns can be tuples, and <code>_</code> matches anything. Each arm looks like <code>(0, 0) => "FizzBuzz".to_string(),</code>. Order matters: the first arm that matches wins. For the fallback arm, use <code>n.to_string()</code>. Section 6 has everything else you need.</p></details>
   </div>
 
   <div class="ex" data-ex="d1-ex3">
     <div class="ex-head"><input type="checkbox" id="d1-ex3"><label for="d1-ex3"><h3>Where Fibonacci overflows</h3><span class="file">src/bin/ex3.rs</span></label></div>
     <p>Using <code>u64</code>, find the largest <code>n</code> for which <code>fib(n)</code> fits, taking <code>fib(1) = fib(2) = 1</code>. Compute iteratively and stop at the first overflow using <code>checked_add</code>. Then repeat with <code>u128</code>.</p>
     <details><summary>Hint</summary>
-      <p><code>checked_add</code> returns an <code>Option&lt;u64&gt;</code>, which is either <code>Some(value)</code> or <code>None</code>. Handle it with:</p>
+      <p><code>checked_add</code> returns an <code>Option&lt;u64&gt;</code> (section 6). Inside a loop, either a <code>match</code> or a <code>let … else</code> with <code>break</code> works:</p>
 <pre><code class="language-rust">match a.checked_add(b) {
     Some(sum) => { /* advance */ }
     None => break,
@@ -609,6 +694,367 @@ let y: u8 = 256;                                   // 4</code></pre>
   </ul>
 
   <div class="next"><p><b>Next: Day 2, Ownership.</b> Who owns a value, what happens on assignment, and why Rust needs neither a garbage collector nor manual <code>delete</code>. It's the most important day of the course.</p></div>
+</article>
+
+<!-- =================================================================== DAY 2 -->
+<article class="view" data-view="day-02" hidden>
+  <p class="eyebrow">Day 02 · Week 1 · Foundations</p>
+  <h1>Ownership</h1>
+  <p class="lede">Every value in Rust has exactly one owner, and the value is freed when its owner goes away. Three rules, checked at compile time, replace both the garbage collector and manual <code>delete</code>.</p>
+  <div class="meta"><span><b>Time</b> 1½–2 hours</span><span><b>Folder</b> <code>day02/</code></span><span><b>Book chapter</b> 4.1</span></div>
+
+  <div class="goals">
+    <h4>By the end of today you can</h4>
+    <ul>
+      <li>explain what a <code>String</code> is in memory and why assigning one <em>moves</em> it</li>
+      <li>tell which types are copied and which are moved</li>
+      <li>pass ownership into and out of functions</li>
+      <li>predict exactly when a value is dropped (freed)</li>
+      <li>read the E0382 "use of moved value" error and fix it two ways</li>
+    </ul>
+  </div>
+
+  <h2>0. Set up today's project</h2>
+<pre><code class="language-bash">cd ~/Projects/personal/rustic
+cargo new day02            # no nested git repo this time: cargo sees the parent repo
+cd day02
+mkdir src/bin
+touch src/bin/ex1.rs src/bin/ex2.rs src/bin/ex3.rs src/bin/ex4.rs
+cargo run --bin day02      # Hello, world!</code></pre>
+  <p>Same layout as Day 1. Put the examples from the chapter in <code>src/main.rs</code> to try them out, and each exercise in its own file in <code>src/bin/</code>.</p>
+
+  <h2>1. The problem ownership solves</h2>
+  <p>Any program that uses heap memory has to answer one question: <strong>who frees it, and when?</strong> Each language you know answers it differently.</p>
+  <div class="table-wrap"><table>
+    <tr><th>Language</th><th>Who frees heap memory</th><th>What can go wrong</th></tr>
+    <tr><td>C++</td><td>Destructors (RAII), or you, with <code>delete</code></td><td>Use-after-free, double free, dangling pointers, leaks. The compiler doesn't check any of it.</td></tr>
+    <tr><td>Go, Java</td><td>A garbage collector, at run time</td><td>Safe, but with GC pauses and memory overhead, and nothing tells you when a file or socket gets closed</td></tr>
+    <tr><td>Python</td><td>Reference counting, plus a cycle collector</td><td>Safe, but every object carries a count, and cycles need the collector</td></tr>
+    <tr><td><strong>Rust</strong></td><td>The single <strong>owner</strong>, at the end of its scope, worked out <strong>at compile time</strong></td><td>Mistakes become compile errors. There's no run-time cost.</td></tr>
+  </table></div>
+  <div class="from cpp"><span class="tag">Coming from C++</span>
+    <p>If you know RAII, you already know half of this. Rust takes RAII and makes it the only option, then adds a compiler check that nobody uses a value after its owner has given it away or freed it.</p></div>
+
+  <h2>2. What a <code>String</code> looks like in memory</h2>
+  <p>On Day 1 you used <code>&amp;str</code> literals, which point at text compiled into the binary. A <code>String</code> is different: it <strong>owns</strong> a buffer on the heap that it can grow. The <code>String</code> value itself is three machine words, 24 bytes on your machine, and the text lives on the heap:</p>
+<pre><code class="language-plaintext">  stack: the String value         heap: the buffer it owns
+  ┌──────────┬──────────┐         ┌───┬───┬───┬───┬───┐
+  │ ptr      │ ─────────┼───────▶ │ h │ e │ l │ l │ o │
+  │ len      │ 5        │         └───┴───┴───┴───┴───┘
+  │ capacity │ 5        │
+  └──────────┴──────────┘</code></pre>
+  <p>These are the <code>String</code> operations you'll need today:</p>
+<pre><code class="language-rust">let mut s = String::from("hello"); // a new String holding a copy of the literal's text
+let empty = String::new();         // empty; no heap buffer yet
+s.push('!');                       // append one char
+s.push_str(" world");              // append a string literal
+s.len()                            // length in bytes
+s.capacity()                       // bytes the buffer can hold before it must grow
+s.as_ptr()                         // address of the heap buffer; print it with {:p}
+let t = format!("{s}?");           // format! builds a new String</code></pre>
+
+  <h2>3. The three rules</h2>
+  <ol>
+    <li><strong>Each value has an owner</strong>, which is a variable, or a field of something that is itself owned.</li>
+    <li><strong>A value has exactly one owner at a time.</strong></li>
+    <li><strong>When the owner goes out of scope, the value is dropped.</strong> Its memory and any other resources it holds, such as a file handle, are freed immediately and deterministically.</li>
+  </ol>
+  <p>Everything else today follows from these three rules.</p>
+
+  <h2>4. Moves</h2>
+<pre><code class="language-rust">let s1 = String::from("hello");
+let s2 = s1;              // ownership MOVES from s1 to s2
+println!("{s1} {s2}");    // error</code></pre>
+<pre class="out" data-label="rustc 1.100"><code class="language-plaintext">error[E0382]: borrow of moved value: `s1`
+  |
+  |     let s1 = String::from("hello");
+  |         -- move occurs because `s1` has type `String`, which does not implement the `Copy` trait
+  |     let s2 = s1;
+  |              -- value moved here
+  |     println!("{s1} {s2}");
+  |                ^^ value borrowed here after move
+  |
+help: consider cloning the value if the performance cost is acceptable
+  |     let s2 = s1.clone();</code></pre>
+  <p>Here is what <code>let s2 = s1;</code> actually does. It copies the 24-byte header (pointer, length, capacity) into <code>s2</code>. The heap buffer is not copied. Now two headers point at the same buffer, which would normally lead to a double free when both are dropped. Rust prevents that by treating <code>s1</code> as <strong>no longer usable</strong>. At the end of the scope, only <code>s2</code> frees the buffer.</p>
+<pre><code class="language-plaintext">  s1 (moved-from, unusable)       s2
+  ┌──────────┐                   ┌──────────┐         ┌───┬───┬───┬───┬───┐
+  │ ptr      │                   │ ptr ─────┼───────▶ │ h │ e │ l │ l │ o │
+  │ len      │                   │ len   5  │         └───┴───┴───┴───┴───┘
+  │ capacity │                   │ cap   5  │
+  └──────────┘                   └──────────┘</code></pre>
+  <div class="from cpp"><span class="tag">Coming from C++</span>
+    <p>In C++, <code>auto s2 = s1;</code> runs the copy constructor (a deep copy), and you have to write <code>std::move(s1)</code> to move. Afterwards, <code>s1</code> is still a live object "in a valid but unspecified state," and its destructor still runs. In Rust, moving is the <em>default</em>, the moved-from variable is a compile error to use, and no destructor runs for it.</p></div>
+  <div class="from go"><span class="tag">Coming from Go</span>
+    <p>Assigning a slice or map in Go also copies just the header, but then both variables share the same backing data, and changes through one are visible through the other. Rust forbids that sharing by invalidating the original.</p></div>
+  <div class="from py"><span class="tag">Coming from Python</span>
+    <p><code>b = a</code> in Python makes two names for one object, kept alive by a reference count. In Rust, there is only ever one name that owns the value.</p></div>
+
+  <h2>5. Copy types: no move, just a copy</h2>
+  <p>On Day 1, <code>let b = a;</code> with integers left <code>a</code> usable. That's because some types are <strong><code>Copy</code></strong>: assigning them makes a full, independent bit-for-bit copy, and the original stays valid.</p>
+<pre><code class="language-rust">let a = 5;
+let b = a;                 // i32 is Copy
+println!("{a} {b}");       // 5 5 ✅
+
+let lit = "hi";
+let lit2 = lit;            // &amp;str is Copy: it copies the pointer, not the text
+println!("{lit} {lit2}");  // hi hi ✅
+
+let t = (1, 'x', true);
+let t2 = t;                // a tuple of Copy types is Copy
+println!("{t:?} {t2:?}");  // ✅</code></pre>
+  <div class="table-wrap"><table>
+    <tr><th>Copy (copied on assignment)</th><th>Not Copy (moved on assignment)</th></tr>
+    <tr><td>All integers, floats, <code>bool</code>, <code>char</code></td><td><code>String</code></td></tr>
+    <tr><td><code>&amp;str</code> and other shared references</td><td>Anything that owns heap memory or another resource</td></tr>
+    <tr><td>Tuples and arrays made only of Copy types</td><td>A tuple containing a <code>String</code>, such as <code>(String, i32)</code></td></tr>
+  </table></div>
+  <p>The rule of thumb: <strong>a type is Copy if all its data is inline and dropping it needs no cleanup.</strong> Copying a <code>String</code> bit by bit would leave two owners of one buffer, so it can't be Copy.</p>
+
+  <h2>6. Clone: an explicit deep copy</h2>
+<pre><code class="language-rust">let s1 = String::from("hello");
+let s2 = s1.clone();       // allocates a NEW heap buffer and copies the bytes into it
+println!("{s1} {s2}");     // hello hello ✅. Each one owns its own buffer.</code></pre>
+  <p>Rust never deep-copies behind your back. Whenever heap memory gets duplicated, the word <code>clone</code> appears in the code, so expensive copies are easy to find. It's the opposite of C++, where <code>auto s2 = s1;</code> quietly allocates.</p>
+  <p>Cloning is not wrong, and at this stage it's often the simplest fix. On Day 3 you'll learn <em>borrowing</em>, which removes most of the need for it.</p>
+
+  <h2>7. Ownership and functions</h2>
+  <p>Passing a value to a function works exactly like assigning it to a variable. Non-Copy values move <strong>into</strong> the function, and returning a value moves it <strong>out</strong> again.</p>
+<pre><code class="language-rust">fn takes(s: String) {
+    println!("takes got {s}");
+}                                  // s goes out of scope here → the String is dropped
+
+fn makes() -> String {
+    String::from("made inside")    // ownership moves out to the caller
+}
+
+fn shout(mut s: String) -> String {  // `mut s`: this function's own variable is mutable
+    s.push('!');
+    s                              // give ownership back
+}
+
+fn measure(s: String) -> (String, usize) {
+    let n = s.len();
+    (s, n)                         // return the String AND the result
+}
+
+fn double(n: i32) -> i32 {
+    n * 2
+}
+
+fn main() {
+    let a = String::from("a");
+    takes(a);                      // a moved into takes() and was dropped there
+    // println!("{a}");            // error[E0382]: borrow of moved value: `a`
+
+    let b = makes();               // main now owns b
+    let b = shout(b);              // b goes in, a new owner comes out (shadowing, Day 1)
+    let (b, n) = measure(b);       // get it back together with the length
+    println!("{b} has {n} bytes"); // made inside! has 12 bytes
+
+    let x = 21;
+    println!("{} {x}", double(x)); // 42 21. i32 is Copy, so x is still usable
+}</code></pre>
+  <p>Look at the note rustc adds when you use <code>a</code> after <code>takes(a)</code>:</p>
+<pre class="out"><code class="language-plaintext">note: consider changing this parameter type in function `takes` to borrow instead
+      if owning the value isn't necessary</code></pre>
+  <p>Passing a <code>String</code> in and getting it back in a tuple, as <code>measure</code> does, works, but it's clumsy. The compiler's note points to the real fix, which is borrowing. That's tomorrow.</p>
+
+  <h2>8. Moves and control flow</h2>
+  <p>The compiler tracks moves through every path the program can take:</p>
+<pre><code class="language-rust">// Moving in a loop: the first iteration takes the value, so the second has nothing to use
+let a = String::from("a");
+for _ in 0..3 {
+    takes(a);      // error[E0382]: use of moved value: `a`
+}                  //   "value moved here, in previous iteration of loop"
+
+// Moving on only one branch: afterwards, the value MIGHT be gone, so it counts as gone
+let s = String::from("a");
+if some_condition {
+    let t = s;     // moved here, on this branch only
+}
+println!("{s}");   // error[E0382]: borrow of moved value: `s`
+
+// Assigning a new value makes a moved-from variable usable again
+let mut s = String::from("a");
+let t = s;                  // s moved out
+s = String::from("b");      // s owns a new value
+println!("{s} {t}");        // b a ✅
+
+// Destructuring moves the parts out (a "partial move")
+let pair = (String::from("ann"), 30);
+let (name, age) = pair;     // the String moves into name; the i32 is copied
+println!("{}", pair.1);     // ✅ the Copy part is still there
+println!("{pair:?}");       // error[E0382]: borrow of partially moved value: `pair`</code></pre>
+
+  <h2>9. Drop: when values are freed</h2>
+  <p>A value is dropped at a precisely defined moment:</p>
+  <ul>
+    <li><strong>At the end of its owner's scope</strong>, the closing <code>}</code>. Variables in the same scope are dropped in <strong>reverse order of declaration</strong>, as in C++.</li>
+    <li><strong>When it's moved into a function</strong>, it's dropped at the end of that function, unless the function returns it.</li>
+    <li><strong>When a variable is assigned a new value</strong>, the old value is dropped immediately.</li>
+    <li><strong>When you call <code>drop(x)</code></strong>. There's nothing special about <code>drop</code>; the standard library defines it as <code>fn drop&lt;T&gt;(_x: T) {}</code>. It takes ownership and does nothing, so the value is dropped at the end of that empty function.</li>
+  </ul>
+  <p>Two cases surprise people:</p>
+  <ul>
+    <li><strong>Shadowing doesn't drop the old value.</strong> As on Day 1, the old variable still exists, just without a name you can use, and it's dropped at the end of the scope like any other.</li>
+    <li><strong><code>let _ = value;</code> drops immediately</strong>, because <code>_</code> isn't a variable and nothing takes ownership. <code>let _name = value;</code> <em>is</em> a variable (the underscore only silences the "unused" warning), so the value lives to the end of the scope.</li>
+  </ul>
+
+  <h3>Making drops visible (ready-made code)</h3>
+  <p><code>String</code> doesn't print anything when it's dropped, so to <em>see</em> drops you need a type that does. Copy this into your file as it is. It uses a <code>struct</code> (Day 5) and implements the <code>Drop</code> trait (Day 11). For today, all you need to know is that <code>Noisy("x")</code> creates a value, <code>.0</code> reads the label inside it, and the value prints <code>drop x</code> when it's freed.</p>
+<pre data-label="ready-made: copy as is"><code class="language-rust">struct Noisy(&amp;'static str);
+
+impl Drop for Noisy {
+    fn drop(&amp;mut self) {
+        println!("  drop {}", self.0);
+    }
+}</code></pre>
+<pre><code class="language-rust">fn main() {
+    let x = Noisy("x");
+    {
+        let y = Noisy("y");
+        println!("inner block ends ({})", y.0);
+    }                                   //   drop y
+    println!("main ends ({})", x.0);
+}                                       //   drop x</code></pre>
+
+  <h2>10. Exercises</h2>
+  <p>Everything these exercises need is in sections 2 to 9, plus Day 1.</p>
+
+  <div class="ex" data-ex="d2-ex1">
+    <div class="ex-head"><input type="checkbox" id="d2-ex1"><label for="d2-ex1"><h3>Move or copy?</h3><span class="file">src/bin/ex1.rs</span></label></div>
+    <p>For each snippet, predict whether it compiles. Then paste it into <code>main</code> and check. Fix every snippet that fails <strong>twice</strong>: once with <code>.clone()</code>, and once without it, by reordering the code or by giving ownership back. Snippet 4 uses <code>takes</code> from section 7; copy that function into the file.</p>
+<pre><code class="language-rust">// 1
+let s = String::from("one");
+let t = s;
+println!("{s} {t}");
+
+// 2
+let n = 10;
+let m = n;
+println!("{n} {m}");
+
+// 3
+let name = "ferris";
+let other = name;
+println!("{name} {other}");
+
+// 4
+let s = String::from("four");
+takes(s);
+println!("{s}");
+
+// 5
+let s = String::from("five");
+let len = s.len();
+let t = s;
+println!("{t} {len}");
+
+// 6
+let pair = (String::from("six"), 6);
+let (word, num) = pair;
+println!("{word} {num} {}", pair.1);</code></pre>
+    <details><summary>Check your predictions</summary>
+      <ol>
+        <li>❌ <code>s</code> moved into <code>t</code> (E0382). Fix: <code>let t = s.clone();</code>, or print <code>s</code> before the move.</li>
+        <li>✅ <code>i32</code> is Copy.</li>
+        <li>✅ <code>&amp;str</code> is Copy; only the pointer is copied.</li>
+        <li>❌ <code>s</code> moved into <code>takes</code> and was dropped there. Fix: <code>takes(s.clone())</code>, or print <code>s</code> before the call.</li>
+        <li>✅ <code>s.len()</code> runs before the move, and <code>len</code> is a <code>usize</code>, which is Copy.</li>
+        <li>✅ It's a partial move, but <code>pair.1</code> is an <code>i32</code>, so it's still there. Using <code>pair</code> itself, or <code>pair.0</code>, would fail.</li>
+      </ol></details>
+  </div>
+
+  <div class="ex" data-ex="d2-ex2">
+    <div class="ex-head"><input type="checkbox" id="d2-ex2"><label for="d2-ex2"><h3>Where is the heap buffer?</h3><span class="file">src/bin/ex2.rs</span></label></div>
+    <p>Prove section 4's diagram with real addresses.</p>
+    <ol>
+      <li>Create <code>s1 = String::from("hello")</code> and print <code>s1.as_ptr()</code> with <code>{:p}</code>.</li>
+      <li>Move it with <code>let s2 = s1;</code> and print <code>s2.as_ptr()</code>.</li>
+      <li>Clone it with <code>let s3 = s2.clone();</code> and print <code>s3.as_ptr()</code>.</li>
+      <li>Start from <code>String::new()</code> and <code>push('x')</code> 40 times. Every time <code>capacity()</code> changes, print the length, the new capacity and the buffer address.</li>
+    </ol>
+    <p>Then answer: which addresses match, and why? What pattern does the capacity follow?</p>
+    <details><summary>Hint</summary>
+      <p>Keep the last capacity in a <code>let mut cap = s.capacity();</code> and compare it after each <code>push</code>. <code>println!("{:p}", s.as_ptr())</code> prints an address such as <code>0x55c41c7b5d50</code>.</p></details>
+    <details><summary>Check your answer</summary>
+      <p>The move keeps the same address, because only the header was copied. The clone has a different address, because it has its own buffer. Capacity goes 0 → 8 → 16 → 32 → 64, doubling so that appending stays cheap on average. The buffer address may <em>not</em> change when capacity grows, because the allocator can sometimes extend the buffer in place. That's why you track capacity rather than the address.</p></details>
+  </div>
+
+  <div class="ex" data-ex="d2-ex3">
+    <div class="ex-head"><input type="checkbox" id="d2-ex3"><label for="d2-ex3"><h3>Ownership relay</h3><span class="file">src/bin/ex3.rs</span></label></div>
+    <p>Write three functions that take ownership of a <code>String</code> and hand ownership back:</p>
+    <ul>
+      <li><code>fn shout(s: String) -> String</code> appends <code>!</code>.</li>
+      <li><code>fn wrap(s: String, left: char, right: char) -> String</code> returns the text surrounded by <code>left</code> and <code>right</code>.</li>
+      <li><code>fn measure(s: String) -> (String, usize)</code> returns the string together with its length in bytes.</li>
+    </ul>
+    <p>In <code>main</code>, pass one <code>String</code> through all three in sequence, giving each step's result a new name, and print <code>[hello!] is 8 bytes</code>. Then write the first two steps as a single nested call: <code>wrap(shout(String::from("hi")), '&lt;', '&gt;')</code>.</p>
+    <p>Finally, try to print the <strong>original</strong> variable after passing it to <code>shout</code>. Read the full error, including the <code>note:</code> line.</p>
+    <details><summary>Hint</summary>
+      <p>For <code>shout</code>, declare the parameter as <code>mut s: String</code> (section 7). For <code>wrap</code>, <code>format!</code> (section 2) can build the result in one line, using inline variable names as on Day 1.</p></details>
+    <details><summary>Something to think about</summary>
+      <p>Every function had to hand the <code>String</code> back just so that you could keep using it. <code>measure</code> needed a tuple only to return something you never wanted to give away. Day 3 solves exactly this problem.</p></details>
+  </div>
+
+  <div class="ex" data-ex="d2-ex4">
+    <div class="ex-head"><input type="checkbox" id="d2-ex4"><label for="d2-ex4"><h3>Drop-order puzzle</h3><span class="file">src/bin/ex4.rs</span></label></div>
+    <p>Paste in the ready-made <code>Noisy</code> code from section 9, then the program below. <strong>Before running it</strong>, write down the complete output in order, with every <code>drop</code> line. Then run it and compare. For every line you got wrong, find the rule in section 9 that explains it.</p>
+<pre><code class="language-rust">fn take(n: Noisy) {
+    println!("take() got {}", n.0);
+}
+
+fn main() {
+    let a = Noisy("a");
+    println!("a is {}", a.0);
+    let b = Noisy("b");
+    {
+        let c = Noisy("c");
+        println!("inner block ends, c is {}", c.0);
+    }
+    take(b);
+    let a = Noisy("a2");
+    let mut d = Noisy("d1");
+    println!("d is {}", d.0);
+    d = Noisy("d2");
+    println!("d is {}", d.0);
+    drop(a);
+    let _ = Noisy("underscore");
+    let _kept = Noisy("_kept");
+    println!("main ends");
+}</code></pre>
+    <details><summary>Reveal the output (rustc 1.100)</summary>
+<pre class="out"><code class="language-plaintext">a is a
+inner block ends, c is c
+  drop c          ← end of the inner block
+take() got b
+  drop b          ← end of take(), which owned it
+d is d1
+  drop d1         ← assigning a new value drops the old one
+d is d2
+  drop a2         ← drop(a) refers to the newest a, the shadowing one
+  drop underscore ← let _ = drops immediately
+main ends
+  drop _kept      ← end of main, in reverse declaration order:
+  drop d2         ←   _kept, then d, then the shadowed first a
+  drop a</code></pre></details>
+  </div>
+
+  <h2>Before you ask for a review</h2>
+  <ul>
+    <li><code>cargo fmt</code> and <code>cargo clippy</code> are clean. Commented-out code is fine for exercise 1.</li>
+    <li>For exercise 2, write your answers as comments in the file.</li>
+    <li>For exercise 4, keep your prediction as a comment above <code>main</code>, even the wrong lines. Those are what we'll discuss.</li>
+  </ul>
+  <p>Then tell Claude <em>"Day 2 done"</em>.</p>
+
+  <h3>Optional reading</h3>
+  <ul>
+    <li><a href="https://doc.rust-lang.org/book/ch04-01-what-is-ownership.html" target="_blank" rel="noopener">The Rust Book 4.1: What is Ownership?</a></li>
+  </ul>
+
+  <div class="next"><p><b>Next: Day 3, Borrowing and slices.</b> How to <em>lend</em> a value with <code>&amp;</code> and <code>&amp;mut</code> instead of moving it, so that <code>measure</code> can just return a <code>usize</code>.</p></div>
 </article>
 
   </main>
